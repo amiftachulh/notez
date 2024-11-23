@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { EllipsisVerticalIcon } from "lucide-react";
 import Invite from "./invite";
-import Members from "./members";
+import MembersList from "./members-list";
 
 export default function Actions() {
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -28,7 +28,7 @@ export default function Actions() {
         </DropdownMenuContent>
       </DropdownMenu>
       <Invite open={inviteOpen} onOpenChange={setInviteOpen} />
-      <Members open={memberOpen} onOpenChange={setMemberOpen} />
+      <MembersList open={memberOpen} onOpenChange={setMemberOpen} />
     </>
   );
 }
