@@ -1,22 +1,13 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { Outlet } from "react-router-dom";
 import axios from "@/services/axios";
+import { User } from "@/types/users";
 import { AxiosError } from "axios";
 import { Loader2Icon } from "lucide-react";
 
-type AuthUser = {
-  id: string;
-  name: string | null;
-  email: string;
-  role: string;
-  created_at: string;
-  updated_at: string;
-  expires_at: string;
-};
-
 type AuthProviderState = {
-  auth: AuthUser | null;
-  setAuth: (auth: AuthUser | null) => void;
+  auth: User | null;
+  setAuth: (auth: User | null) => void;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
 };
@@ -24,7 +15,7 @@ type AuthProviderState = {
 const AuthContext = createContext<AuthProviderState>({} as AuthProviderState);
 
 export function AuthProvider() {
-  const [auth, setAuth] = useState<AuthUser | null>(null);
+  const [auth, setAuth] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

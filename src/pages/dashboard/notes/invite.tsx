@@ -49,10 +49,10 @@ export default function Invite(props: DialogProps) {
     },
   });
 
-  const onSubmit = form.handleSubmit(async (values) => {
+  const onSubmit = form.handleSubmit(async (data) => {
     setLoading(true);
     try {
-      await axios.post("/note-invitations", values);
+      await axios.post("/note-invitations", data);
       if (props.onOpenChange) {
         props.onOpenChange(false);
       }

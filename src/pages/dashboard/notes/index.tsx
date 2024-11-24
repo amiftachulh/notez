@@ -37,7 +37,7 @@ export function Component() {
         }}
       />
     ) : (
-      <Container className={cn(editorClassname, "p-3")}>
+      <Container className={cn(editorClassname, "p-4")}>
         <h1>{data.title}</h1>
         <div dangerouslySetInnerHTML={{ __html: data.content ?? "" }} />
       </Container>

@@ -136,7 +136,7 @@ export default function Toolbar({ title }: Props) {
 
   return (
     <>
-      <div className="flex justify-center p-3">
+      <div className="flex justify-center p-4">
         <AutosizeTextarea
           ref={textAreaRef}
           className="w-[65ch] resize-none border-none text-center text-xl font-semibold md:text-2xl"

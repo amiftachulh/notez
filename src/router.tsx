@@ -6,6 +6,7 @@ import Home from "./pages";
 import Login from "./pages/auth/login";
 import Register from "./pages/auth/register";
 import Dashboard from "./pages/dashboard";
+import Profile from "./pages/dashboard/profile";
 
 export const router = createBrowserRouter(
   [
@@ -25,6 +26,7 @@ export const router = createBrowserRouter(
           path: "/dashboard",
           children: [
             { path: "", element: <Dashboard /> },
+            { path: "profile", element: <Profile /> },
             { path: "notes/:id", lazy: () => import("./pages/dashboard/notes") },
           ],
         },

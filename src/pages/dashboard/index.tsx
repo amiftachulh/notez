@@ -31,10 +31,10 @@ export default function Dashboard() {
     },
   });
 
-  const onSubmit = form.handleSubmit(async (values) => {
+  const onSubmit = form.handleSubmit(async (data) => {
     setLoading(true);
     try {
-      await axios.post("/notes", values);
+      await axios.post("/notes", data);
       mutate();
       toast.success("Note added successfully");
       setOpen(false);
@@ -51,8 +51,8 @@ export default function Dashboard() {
   });
 
   return (
-    <Container className="p-3">
-      <div className="flex items-center justify-between gap-3">
+    <Container className="p-4">
+      <div className="flex items-center justify-between gap-4">
         <Input className="md:max-w-[20rem]" placeholder="Search notes..." />
         <Popover open={open} onOpenChange={setOpen}>
           <Button asChild>
