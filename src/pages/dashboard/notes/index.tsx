@@ -1,12 +1,10 @@
 import { useParams } from "react-router-dom";
 import Container from "@/components/container";
+import useNote from "@/hooks/queries/use-note";
 import { extensions } from "@/lib/tiptap";
 import { cn } from "@/lib/utils";
-import { fetcher } from "@/services/axios";
-import { Note } from "@/types/notes";
 import { EditorProvider } from "@tiptap/react";
 import { Loader2Icon } from "lucide-react";
-import useSWR from "swr";
 import Toolbar from "./toolbar";
 
 const editorClassname =
@@ -14,33 +12,39 @@ const editorClassname =
 
 export function Component() {
   const { id } = useParams();
-  const { data, error, isLoading } = useSWR<Note>(`/notes/${id}`, fetcher);
+  const query = useNote(id as string);
 
-  if (error) {
-    throw new Error("Error fetching notes");
+  if (query.isPending) {
+    return (
+      <div className="grid h-[calc(100svh-4rem)] place-items-center">
+        <Loader2Icon className="size-10 animate-spin" />
+      </div>
+    );
   }
 
-  return isLoading ? (
-    <div className="grid h-[calc(100svh-4rem)] place-items-center">
-      <Loader2Icon className="size-10 animate-spin" />
-    </div>
-  ) : data ? (
-    data.role !== "viewer" ? (
+  if (query.isError) {
+    return null;
+  }
+
+  if (query.data.role !== "viewer") {
+    return (
       <EditorProvider
-        slotBefore={<Toolbar title={data.title} />}
+        slotBefore={<Toolbar title={query.data.title} />}
         extensions={extensions}
-        content={data.content ?? ""}
+        content={query.data.content ?? ""}
         editorProps={{
           attributes: {
             class: editorClassname,
           },
         }}
       />
-    ) : (
-      <Container className={cn(editorClassname, "p-4")}>
-        <h1>{data.title}</h1>
-        <div dangerouslySetInnerHTML={{ __html: data.content ?? "" }} />
-      </Container>
-    )
-  ) : null;
+    );
+  }
+
+  return (
+    <Container className={cn(editorClassname, "p-4")}>
+      <h1>{query.data.title}</h1>
+      <div dangerouslySetInnerHTML={{ __html: query.data.content ?? "" }} />
+    </Container>
+  );
 }

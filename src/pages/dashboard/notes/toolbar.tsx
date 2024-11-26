@@ -12,9 +12,9 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import useUpdateNote from "@/hooks/mutations/use-update-note";
 import { NOTE_MAX_CONTENT_BYTES } from "@/lib/constants";
 import { cn } from "@/lib/utils";
-import axios from "@/services/axios";
 import { Editor, useCurrentEditor } from "@tiptap/react";
 import { AxiosError } from "axios";
 import {
@@ -34,7 +34,6 @@ import {
   Undo,
 } from "lucide-react";
 import { toast } from "sonner";
-import { useSWRConfig } from "swr";
 import Actions from "./actions";
 
 type Level = 1 | 2 | 3 | 4 | 5 | 6;
@@ -43,15 +42,15 @@ type Props = {
   title: string;
 };
 
+const errorMessage = "An error occurred while updating the note.";
+
 export default function Toolbar({ title }: Props) {
   const [isPinned, setIsPinned] = useState(false);
   const [currentHeading, setCurrentHeading] = useState("p");
-  const [loading, setLoading] = useState(false);
   const textAreaRef = useRef<AutosizeTextAreaRef>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
   const { editor } = useCurrentEditor();
   const { id } = useParams();
-  const { mutate } = useSWRConfig();
 
   useEffect(() => {
     const el = toolbarRef.current;
@@ -66,6 +65,7 @@ export default function Toolbar({ title }: Props) {
     return () => observer.unobserve(el);
   }, []);
 
+  const mutation = useUpdateNote(id as string);
   async function updateNote() {
     if (!editor || !textAreaRef.current) return;
 
@@ -87,21 +87,24 @@ export default function Toolbar({ title }: Props) {
       return;
     }
 
-    setLoading(true);
-    try {
-      await axios.put(`/notes/${id}`, {
+    mutation.mutate(
+      {
         title: value,
         content: html,
-      });
-      mutate(`/notes/${id}`);
-      toast.success("Note updated.");
-    } catch (error) {
-      if (error instanceof AxiosError) {
-        toast.error("Failed to save note.");
+      },
+      {
+        onSuccess: () => {
+          toast.success("Note updated successfully.");
+        },
+        onError: (error) => {
+          if (error instanceof AxiosError) {
+            toast.error(error.response?.data.message || errorMessage);
+          } else {
+            toast.error(errorMessage);
+          }
+        },
       }
-    } finally {
-      setLoading(false);
-    }
+    );
   }
 
   useEffect(() => {
@@ -337,7 +340,7 @@ export default function Toolbar({ title }: Props) {
           <Button
             variant="ghost"
             className="min-w-[8ch] sm:bg-primary sm:text-primary-foreground sm:shadow sm:hover:bg-primary/90 sm:hover:text-primary-foreground"
-            loading={loading}
+            loading={mutation.isPending}
             onClick={updateNote}
           >
             Save

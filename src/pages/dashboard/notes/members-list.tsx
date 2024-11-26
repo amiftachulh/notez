@@ -6,15 +6,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { fetcher } from "@/services/axios";
-import { Note } from "@/types/notes";
+import useNote from "@/hooks/queries/use-note";
 import { DialogProps } from "@radix-ui/react-dialog";
-import useSWR from "swr";
 import Member from "./member";
 
 export default function MembersList(props: DialogProps) {
   const { id } = useParams();
-  const { data } = useSWR<Note>(`/notes/${id}`, fetcher);
+  const query = useNote(id as string);
 
   return (
     <Dialog {...props}>
@@ -25,12 +23,12 @@ export default function MembersList(props: DialogProps) {
         </DialogHeader>
         <div>
           <h3 className="text-sm font-medium uppercase text-muted-foreground">Owner</h3>
-          <Member {...data!.owner} />
+          <Member {...query.data!.owner} />
         </div>
-        {data!.members.length > 0 && (
+        {query.data!.members.length > 0 && (
           <div>
             <h3 className="text-sm font-medium uppercase text-muted-foreground">Members</h3>
-            {data!.members.map((member) => (
+            {query.data!.members.map((member) => (
               <Member key={member.id} {...member} />
             ))}
           </div>

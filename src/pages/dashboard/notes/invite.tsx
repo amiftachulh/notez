@@ -26,25 +26,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import useNote from "@/hooks/queries/use-note";
 import { CreateNoteInvitationSchema, createNoteInvitationSchema } from "@/schemas/note-invitations";
-import axios, { fetcher } from "@/services/axios";
-import { Note } from "@/types/notes";
+import axios from "@/services/axios";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DialogProps } from "@radix-ui/react-dialog";
 import { AxiosError } from "axios";
 import { toast } from "sonner";
-import useSWR from "swr";
 
 export default function Invite(props: DialogProps) {
   const [loading, setLoading] = useState(false);
-
   const { id } = useParams();
-  const { data } = useSWR<Note>(`/notes/${id}`, fetcher);
+  const query = useNote(id as string);
+
   const form = useForm<CreateNoteInvitationSchema>({
     resolver: zodResolver(createNoteInvitationSchema),
     defaultValues: {
       email: "",
-      note_id: data!.id,
+      note_id: query.data!.id,
       role: "viewer",
     },
   });

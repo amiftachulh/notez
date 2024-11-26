@@ -1,3 +1,5 @@
+import { Order } from ".";
+
 export type NoteRole = "editor" | "viewer";
 
 export type Note = {
@@ -11,7 +13,7 @@ export type Note = {
   updated_at: string;
 };
 
-export type UserNote = Omit<Note, "content">;
+export type UserNote = Omit<Note, "content" | "owner"> & { user_id: string };
 
 export type NoteMember = {
   id: string;
@@ -34,4 +36,13 @@ export type NoteInvitation = {
   };
   role: NoteRole;
   created_at: string;
+};
+
+export type NotesQuery = {
+  q?: string;
+  page?: number;
+  page_size?: number;
+  // sort?: "id" | "title" | "created_at" | "updated_at";
+  sort?: string;
+  order?: Order;
 };
