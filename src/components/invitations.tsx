@@ -1,41 +1,47 @@
 import { useState } from "react";
-import axios, { fetcher } from "@/services/axios";
-import { NoteInvitation } from "@/types/notes";
+import useRespondNoteInvitation from "@/hooks/mutations/use-respond-note-invitation";
+import useNoteInvitations from "@/hooks/queries/use-note-invitations";
 import { AxiosError } from "axios";
 import { AlertCircleIcon, MailIcon } from "lucide-react";
 import { toast } from "sonner";
-import useSWR, { useSWRConfig } from "swr";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "./ui/accordion";
 import { Alert, AlertDescription } from "./ui/alert";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 
-type Respond = "accept" | "decline";
+const errorMessage = "An error occurred while responding to the invitation.";
 
 export default function Invitations() {
-  const [loading, setLoading] = useState<Respond | null>(null);
+  const [loadingAction, setLoadingAction] = useState<{
+    id: string;
+    action: "accept" | "decline";
+  } | null>(null);
 
-  const { data, error, isLoading } = useSWR<NoteInvitation[]>("/note-invitations", fetcher);
-  const { mutate } = useSWRConfig();
+  const query = useNoteInvitations();
+  const mutation = useRespondNoteInvitation();
 
-  async function respondInvitation(id: string, accept: boolean) {
-    try {
-      await axios.patch(`/note-invitations/${id}`, { accept });
-      toast.success(`Invitation ${accept ? "accepted" : "declined"} successfully`);
-      mutate("/note-invitations");
-      if (accept) {
-        mutate("/notes");
+  async function handleRespondInvitation(id: string, accept: boolean) {
+    setLoadingAction({ id, action: accept ? "accept" : "decline" });
+
+    mutation.mutate(
+      { id, accept },
+      {
+        onSuccess: () => {
+          toast.success(`Invitation ${accept ? "accepted" : "declined"} successfully`);
+        },
+        onError: (error) => {
+          if (error instanceof AxiosError) {
+            toast.error(error.response?.data.message || errorMessage);
+          } else {
+            toast.error(errorMessage);
+          }
+        },
+        onSettled: () => {
+          setLoadingAction(null);
+        },
       }
-    } catch (error) {
-      if (error instanceof AxiosError) {
-        toast.error(error.response?.data.message);
-      } else {
-        toast.error("Error responding to invitation");
-      }
-    } finally {
-      setLoading(null);
-    }
+    );
   }
 
   return (
@@ -43,9 +49,9 @@ export default function Invitations() {
       <PopoverTrigger asChild>
         <Button variant="ghost" size="icon" className="relative">
           <MailIcon />
-          {data && data.length > 0 && (
+          {query.data && query.data.length > 0 && (
             <span className="absolute right-0 top-0 rounded-full bg-primary px-1 text-xs text-primary-foreground">
-              {data.length > 99 ? "99+" : data.length}
+              {query.data.length > 99 ? "99+" : query.data.length}
             </span>
           )}
         </Button>
@@ -53,11 +59,16 @@ export default function Invitations() {
       <PopoverContent>
         <div className="space-y-2">
           <div className="text-lg font-semibold leading-none">Invitations</div>
-          {isLoading ? (
+          {query.isLoading ? (
             <div className="text-sm text-muted-foreground">Loading...</div>
-          ) : data && data.length > 0 ? (
+          ) : query.isError ? (
+            <Alert>
+              <AlertCircleIcon className="size-4" />
+              <AlertDescription>An error occurred while getting invitations data.</AlertDescription>
+            </Alert>
+          ) : query.data && query.data.length > 0 ? (
             <Accordion type="single" collapsible>
-              {data.map((invitation) => (
+              {query.data.map((invitation) => (
                 <AccordionItem key={invitation.id} value={invitation.id}>
                   <AccordionTrigger className="group">
                     <div>
@@ -74,21 +85,21 @@ export default function Invitations() {
                   </AccordionTrigger>
                   <AccordionContent className="flex justify-end gap-2 pt-2">
                     <Button
-                      loading={loading === "accept"}
-                      onClick={() => {
-                        setLoading("accept");
-                        respondInvitation(invitation.id, true);
-                      }}
+                      loading={
+                        loadingAction?.id === invitation.id && loadingAction.action === "accept"
+                      }
+                      disabled={loadingAction !== null}
+                      onClick={() => handleRespondInvitation(invitation.id, true)}
                     >
                       Accept
                     </Button>
                     <Button
                       variant="destructive"
-                      loading={loading === "decline"}
-                      onClick={() => {
-                        setLoading("decline");
-                        respondInvitation(invitation.id, false);
-                      }}
+                      loading={
+                        loadingAction?.id === invitation.id && loadingAction.action === "decline"
+                      }
+                      disabled={loadingAction !== null}
+                      onClick={() => handleRespondInvitation(invitation.id, false)}
                     >
                       Decline
                     </Button>
@@ -96,11 +107,6 @@ export default function Invitations() {
                 </AccordionItem>
               ))}
             </Accordion>
-          ) : error ? (
-            <Alert>
-              <AlertCircleIcon className="size-4" />
-              <AlertDescription>An error occurred while getting invitations data.</AlertDescription>
-            </Alert>
           ) : (
             <div className="text-sm text-muted-foreground">Currently there are no invitations.</div>
           )}
