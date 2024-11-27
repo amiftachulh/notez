@@ -132,7 +132,7 @@ export default function DataTable<TData, TValue>({
           </TableBody>
         </Table>
       </div>
-      <DataTablePagination table={table} hideRowsSelection />
+      {data.length > 0 && <DataTablePagination table={table} hideRowsSelection />}
     </div>
   );
 }
