@@ -45,4 +45,5 @@ export type NotesQuery = {
   // sort?: "id" | "title" | "created_at" | "updated_at";
   sort?: string;
   order?: Order;
+  role?: NoteRole | "owner";
 };

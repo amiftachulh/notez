@@ -3,6 +3,13 @@ import { useForm } from "react-hook-form";
 import Container from "@/components/container";
 import { AutosizeTextarea } from "@/components/ui/autosize-textarea";
 import { Button } from "@/components/ui/button";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -10,17 +17,35 @@ import useCreateNote from "@/hooks/mutations/use-create-note";
 import useNotes from "@/hooks/queries/use-notes";
 import useDebounceFn from "@/hooks/use-debounce-fn";
 import useTableState from "@/hooks/use-table-state";
+import { cn } from "@/lib/utils";
 import { noteSchema, NoteSchema } from "@/schemas/notes";
 import { NotesQuery } from "@/types/notes";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AxiosError } from "axios";
-import { PlusCircleIcon } from "lucide-react";
+import { CheckIcon, ChevronsUpDownIcon, PlusCircleIcon } from "lucide-react";
 import { toast } from "sonner";
 import { columns } from "./columns";
 import DataTable from "./data-table";
 
+const roles = [
+  {
+    value: "owner",
+    label: "Owner",
+  },
+  {
+    value: "editor",
+    label: "Editor",
+  },
+  {
+    value: "viewer",
+    label: "Viewer",
+  },
+];
+
 export default function Dashboard() {
   const [open, setOpen] = useState(false);
+  const [roleFilterOpen, setRoleFilterOpen] = useState(false);
+  const [roleValue, setRoleValue] = useState("");
 
   const { queryParams, setQueryParams, sorting, onSortingChange, pagination, onPaginationChange } =
     useTableState<NotesQuery>({
@@ -57,19 +82,66 @@ export default function Dashboard() {
 
   return (
     <Container className="p-4">
-      <div className="flex items-center gap-4">
+      <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:gap-4">
         <Input
-          className="md:max-w-[20rem]"
           placeholder="Search notes..."
+          className="w-full sm:flex-1"
           onChange={(e) =>
             debounceSetQueryParams((prev) => ({ ...prev, q: e.target.value || undefined }))
           }
         />
+        <Popover open={roleFilterOpen} onOpenChange={setRoleFilterOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              role="combobox"
+              aria-expanded={open}
+              className={cn(
+                "w-full justify-between font-normal sm:w-[120px]",
+                !roleValue && "text-muted-foreground"
+              )}
+            >
+              {roleValue ? roles.find((role) => role.value === roleValue)?.label : "Role"}
+              <ChevronsUpDownIcon className="opacity-50" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="p-0 sm:w-[120px]">
+            <Command>
+              <CommandList>
+                <CommandEmpty>No role found.</CommandEmpty>
+                <CommandGroup>
+                  {roles.map((role) => (
+                    <CommandItem
+                      key={role.value}
+                      value={role.value}
+                      onSelect={(val) => {
+                        setRoleValue(val === roleValue ? "" : val);
+                        setQueryParams((prev) => ({
+                          ...prev,
+                          role: val === roleValue ? undefined : (val as NotesQuery["role"]),
+                        }));
+                        setRoleFilterOpen(false);
+                      }}
+                    >
+                      {role.label}
+                      <CheckIcon
+                        className={cn(
+                          "ml-auto",
+                          roleValue === role.value ? "opacity-100" : "opacity-0"
+                        )}
+                      />
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
-            <Button className="ml-auto">
+            <Button>
               <PlusCircleIcon />
-              <span className="hidden sm:inline">Add Note</span>
+              <span>Add Note</span>
             </Button>
           </PopoverTrigger>
           <PopoverContent>

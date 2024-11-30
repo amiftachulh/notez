@@ -61,7 +61,7 @@ export default function DataTable<TData, TValue>({
   });
 
   return (
-    <div className="mt-3 space-y-4">
+    <div className="space-y-4">
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -84,8 +84,10 @@ export default function DataTable<TData, TValue>({
                       }
                     >
                       {header.isPlaceholder ? null : header.column.getCanSort() ? (
-                        <button className="flex items-center gap-2">
-                          {flexRender(header.column.columnDef.header, header.getContext())}
+                        <button className="flex items-center gap-2 [&>*]:min-w-fit">
+                          <span>
+                            {flexRender(header.column.columnDef.header, header.getContext())}
+                          </span>
                           {{
                             asc: <ArrowUpIcon className="size-4" />,
                             desc: <ArrowDownIcon className="size-4" />,
@@ -102,9 +104,11 @@ export default function DataTable<TData, TValue>({
           </TableHeader>
           <TableBody className={cn("relative", queryState.isFetching && "opacity-25")}>
             {queryState.isPending ? (
-              <div className="h-32">
-                <Loader2Icon className="absolute inset-0 m-auto size-10 animate-spin" />
-              </div>
+              <TableRow>
+                <TableCell colSpan={columns.length} className="h-32 text-center">
+                  <Loader2Icon className="absolute inset-0 m-auto size-10 animate-spin" />
+                </TableCell>
+              </TableRow>
             ) : queryState.isError ? (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-32 text-center">
@@ -132,7 +136,7 @@ export default function DataTable<TData, TValue>({
           </TableBody>
         </Table>
       </div>
-      {data.length > 0 && <DataTablePagination table={table} hideRowsSelection />}
+      {data.length > 0 && <DataTablePagination table={table} />}
     </div>
   );
 }
