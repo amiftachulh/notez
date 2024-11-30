@@ -12,13 +12,15 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import useKickMember from "@/hooks/mutations/use-kick-member";
+import useUpdateMemberRole from "@/hooks/mutations/use-update-member-role";
+import useNote from "@/hooks/queries/use-note";
+import { GENERIC_ERROR_MESSAGE } from "@/lib/constants";
 import { generateAvatar } from "@/lib/dicebear";
-import axios from "@/services/axios";
-import { Note, NoteMember, NoteRole } from "@/types/notes";
+import { NoteMember, NoteRole } from "@/types/notes";
 import { AxiosError } from "axios";
 import { CheckIcon, EllipsisVerticalIcon } from "lucide-react";
 import { toast } from "sonner";
-import useSWR from "swr";
 
 type Props = Omit<NoteMember, "role" | "created_at"> & {
   role?: NoteRole;
@@ -28,38 +30,42 @@ type Props = Omit<NoteMember, "role" | "created_at"> & {
 export default function Member(props: Props) {
   const { auth } = useAuth();
   const { id } = useParams();
-  const { data, mutate } = useSWR<Note>(`/notes/${id}`);
+  const { data } = useNote(id as string);
+  const updateRole = useUpdateMemberRole();
+  const kickMember = useKickMember();
 
   async function updateMemberRole(role: NoteRole) {
-    if (auth?.id !== data?.owner.id || role === props.role) return;
+    if (auth!.id !== data!.owner.id || role === props.role) return;
 
-    try {
-      await axios.patch(`/notes/${id}/members/${props.id}`, { role });
-      await mutate();
-      toast.success("Role has been updated successfully.");
-    } catch (error) {
-      if (error instanceof AxiosError) {
-        toast.error(error.response?.data.message);
-      } else {
-        toast.error("An error occurred. Please try again later.");
+    updateRole.mutate(
+      { id: id as string, memberId: props.id, role },
+      {
+        onSuccess: () => {
+          toast.success("Role has been updated successfully.");
+        },
+        onError: (error) => {
+          const msg = error instanceof AxiosError && error.response?.data.message;
+          toast.error(msg ? msg : GENERIC_ERROR_MESSAGE);
+        },
       }
-    }
+    );
   }
 
-  async function kickMember() {
-    if (auth?.id !== data?.owner.id) return;
+  async function kick() {
+    if (auth!.id !== data!.owner.id) return;
 
-    try {
-      await axios.delete(`/notes/${id}/members/${props.id}`);
-      await mutate();
-      toast.success("Member has been kicked successfully.");
-    } catch (error) {
-      if (error instanceof AxiosError) {
-        toast.error(error.response?.data.message);
-      } else {
-        toast.error("An error occurred. Please try again later.");
+    kickMember.mutate(
+      { id: id as string, memberId: props.id },
+      {
+        onSuccess: () => {
+          toast.success("Member has been kicked successfully.");
+        },
+        onError: (error) => {
+          const msg = error instanceof AxiosError && error.response?.data.message;
+          toast.error(msg ? msg : GENERIC_ERROR_MESSAGE);
+        },
       }
-    }
+    );
   }
 
   return (
@@ -78,7 +84,7 @@ export default function Member(props: Props) {
         </div>
         <div className="text-sm text-muted-foreground">{props.email}</div>
       </div>
-      {auth && props.role !== undefined && (
+      {auth!.id === data!.owner.id && (
         <DropdownMenu>
           <DropdownMenuTrigger className="ml-auto">
             <EllipsisVerticalIcon />
@@ -97,7 +103,7 @@ export default function Member(props: Props) {
                 </DropdownMenuSubContent>
               </DropdownMenuPortal>
             </DropdownMenuSub>
-            <DropdownMenuItem onClick={kickMember}>Kick</DropdownMenuItem>
+            <DropdownMenuItem onClick={kick}>Kick</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       )}
