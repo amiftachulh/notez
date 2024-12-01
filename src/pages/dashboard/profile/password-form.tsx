@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { useAuth } from "@/components/providers/auth-provider";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -10,21 +11,21 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import useUpdatePassword from "@/hooks/mutations/use-update-password";
+import { GENERIC_ERROR_MESSAGE } from "@/lib/constants";
 import { updatePasswordSchema, UpdatePasswordSchema } from "@/schemas/users";
-import axios, { fetcher } from "@/services/axios";
-import { User } from "@/types/users";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AxiosError } from "axios";
 import { EyeClosedIcon, EyeIcon } from "lucide-react";
 import { toast } from "sonner";
-import useSWR from "swr";
 
 export default function PasswordForm() {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const { mutate } = useSWR<User>("/auth/check", fetcher);
+
+  const { auth } = useAuth();
+  const mutation = useUpdatePassword();
   const form = useForm<UpdatePasswordSchema>({
     resolver: zodResolver(updatePasswordSchema),
     defaultValues: {
@@ -35,33 +36,21 @@ export default function PasswordForm() {
   });
 
   const onSubmit = form.handleSubmit(async (data) => {
-    setLoading(true);
-    try {
-      await axios.patch("/profile/password", data);
-      await mutate();
-      form.reset();
-      toast.success("Password updated successfully.");
-    } catch (error) {
-      if (error instanceof AxiosError) {
-        const err = error.response?.data.error;
-        Object.keys(err).forEach((key) => {
-          form.setError(
-            key as keyof UpdatePasswordSchema,
-            { message: err[key] },
-            { shouldFocus: true }
-          );
-        });
-      } else {
-        toast.error("An error occurred. Please try again.");
-      }
-    } finally {
-      setLoading(false);
-    }
+    mutation.mutate(data, {
+      onSuccess: () => {
+        toast.success("Password updated successfully.");
+      },
+      onError: (error) => {
+        const msg = error instanceof AxiosError && error.response?.data.message;
+        toast.error(msg || GENERIC_ERROR_MESSAGE);
+      },
+    });
   });
 
   return (
     <Form {...form}>
       <form className="space-y-4 rounded-md border p-6" onSubmit={onSubmit}>
+        <input name="username" value={auth!.name ?? ""} autoComplete="username" hidden readOnly />
         <FormField
           control={form.control}
           name="current_password"
@@ -74,6 +63,7 @@ export default function PasswordForm() {
                     type={showCurrentPassword ? "text" : "password"}
                     className="pr-10"
                     placeholder="Your current password"
+                    autoComplete="current-password"
                     {...field}
                   />
                   <button
@@ -105,6 +95,7 @@ export default function PasswordForm() {
                     type={showPassword ? "text" : "password"}
                     className="pr-10"
                     placeholder="Your new password"
+                    autoComplete="new-password"
                     {...field}
                   />
                   <button
@@ -136,6 +127,7 @@ export default function PasswordForm() {
                     type={showConfirmPassword ? "text" : "password"}
                     className="pr-10"
                     placeholder="Retype your new password"
+                    autoComplete="new-password"
                     {...field}
                   />
                   <button
@@ -155,7 +147,7 @@ export default function PasswordForm() {
             </FormItem>
           )}
         />
-        <Button loading={loading}>Save</Button>
+        <Button loading={mutation.isPending}>Save</Button>
       </form>
     </Form>
   );

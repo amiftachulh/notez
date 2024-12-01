@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useAuth } from "@/components/providers/auth-provider";
 import { Button } from "@/components/ui/button";
@@ -11,39 +10,36 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import useUpdateProfile from "@/hooks/mutations/use-update-profile";
+import { GENERIC_ERROR_MESSAGE } from "@/lib/constants";
 import { nameSchema, NameSchema } from "@/schemas/users";
-import axios, { fetcher } from "@/services/axios";
-import { User } from "@/types/users";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { AxiosError } from "axios";
 import { toast } from "sonner";
-import useSWR from "swr";
 
 export default function NameForm() {
-  const [loading, setLoading] = useState(false);
-  const { setAuth } = useAuth();
-  const { data, mutate } = useSWR<User>("/auth/check", fetcher);
+  const { auth } = useAuth();
+  const mutation = useUpdateProfile();
   const form = useForm<NameSchema>({
     resolver: zodResolver(nameSchema),
     defaultValues: {
-      name: data!.name ?? "",
+      name: auth!.name ?? "",
     },
   });
 
   const onSubmit = form.handleSubmit(async (data) => {
-    setLoading(true);
-    try {
-      await axios.patch("/profile", { name: data.name ?? null });
-      const auth = await mutate();
-      if (auth) {
-        form.reset({ name: auth.name ?? "" });
-        setAuth(auth);
+    mutation.mutate(
+      { name: data.name },
+      {
+        onSuccess: () => {
+          toast.success("Profile updated successfully.");
+        },
+        onError: (error) => {
+          const msg = error instanceof AxiosError && error.response?.data.message;
+          toast.error(msg || GENERIC_ERROR_MESSAGE);
+        },
       }
-      toast.success("Profile updated successfully.");
-    } catch (_error) {
-      toast.error("An error occurred. Please try again.");
-    } finally {
-      setLoading(false);
-    }
+    );
   });
 
   return (
@@ -64,7 +60,7 @@ export default function NameForm() {
             </FormItem>
           )}
         />
-        <Button loading={loading}>Save</Button>
+        <Button loading={mutation.isPending}>Save</Button>
       </form>
     </Form>
   );

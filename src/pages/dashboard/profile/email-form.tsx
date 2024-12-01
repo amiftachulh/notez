@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useAuth } from "@/components/providers/auth-provider";
 import { Button } from "@/components/ui/button";
@@ -11,44 +10,36 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import useUpdateEmail from "@/hooks/mutations/use-update-email";
+import { GENERIC_ERROR_MESSAGE } from "@/lib/constants";
 import { emailSchema, EmailSchema } from "@/schemas/users";
-import axios, { fetcher } from "@/services/axios";
-import { User } from "@/types/users";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AxiosError } from "axios";
 import { toast } from "sonner";
-import useSWR from "swr";
 
 export default function EmailForm() {
-  const [loading, setLoading] = useState(false);
-  const { setAuth } = useAuth();
-  const { data, mutate } = useSWR<User>("/auth/check", fetcher);
+  const { auth } = useAuth();
+  const mutation = useUpdateEmail();
   const form = useForm<EmailSchema>({
     resolver: zodResolver(emailSchema),
     defaultValues: {
-      email: data!.email ?? "",
+      email: auth!.email,
     },
   });
 
   const onSubmit = form.handleSubmit(async (data) => {
-    setLoading(true);
-    try {
-      await axios.patch("/profile/email", { email: data.email });
-      const auth = await mutate();
-      if (auth) {
-        form.reset({ email: auth.email });
-        setAuth(auth);
+    mutation.mutate(
+      { email: data.email },
+      {
+        onSuccess: () => {
+          toast.success("Email updated successfully.");
+        },
+        onError: (error) => {
+          const msg = error instanceof AxiosError && error.response?.data.message;
+          toast.error(msg || GENERIC_ERROR_MESSAGE);
+        },
       }
-      toast.success("Email updated successfully.");
-    } catch (error) {
-      if (error instanceof AxiosError) {
-        toast.error(error.response?.data.message);
-      } else {
-        toast.error("An error occurred. Please try again.");
-      }
-    } finally {
-      setLoading(false);
-    }
+    );
   });
 
   return (
@@ -67,7 +58,7 @@ export default function EmailForm() {
             </FormItem>
           )}
         />
-        <Button loading={loading}>Save</Button>
+        <Button loading={mutation.isPending}>Save</Button>
       </form>
     </Form>
   );
