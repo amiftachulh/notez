@@ -41,8 +41,22 @@ export default function PasswordForm() {
         toast.success("Password updated successfully.");
       },
       onError: (error) => {
-        const msg = error instanceof AxiosError && error.response?.data.message;
-        toast.error(msg || GENERIC_ERROR_MESSAGE);
+        const errors = error instanceof AxiosError && error.response?.data.error;
+        if (errors.current_password) {
+          form.setError(
+            "current_password",
+            { message: errors.current_password },
+            { shouldFocus: true }
+          );
+          return;
+        }
+
+        if (errors.password) {
+          form.setError("password", { message: errors.password }, { shouldFocus: true });
+          return;
+        }
+
+        toast.error(GENERIC_ERROR_MESSAGE);
       },
     });
   });
@@ -70,6 +84,7 @@ export default function PasswordForm() {
                     type="button"
                     className="absolute inset-y-0 right-0 top-0 px-3"
                     onClick={() => setShowCurrentPassword((prev) => !prev)}
+                    tabIndex={-1}
                   >
                     {showCurrentPassword ? (
                       <EyeClosedIcon className="size-4" />
@@ -102,6 +117,7 @@ export default function PasswordForm() {
                     type="button"
                     className="absolute inset-y-0 right-0 top-0 px-3"
                     onClick={() => setShowPassword((prev) => !prev)}
+                    tabIndex={-1}
                   >
                     {showPassword ? (
                       <EyeClosedIcon className="size-4" />
@@ -134,6 +150,7 @@ export default function PasswordForm() {
                     type="button"
                     className="absolute inset-y-0 right-0 top-0 px-3"
                     onClick={() => setShowConfirmPassword((prev) => !prev)}
+                    tabIndex={-1}
                   >
                     {showConfirmPassword ? (
                       <EyeClosedIcon className="size-4" />
