@@ -1,10 +1,10 @@
 import { Link, useNavigate } from "react-router-dom";
 import { generateAvatar } from "@/lib/dicebear";
 import { AvatarImage } from "@radix-ui/react-avatar";
+import { useQueryClient } from "@tanstack/react-query";
 import { AxiosError } from "axios";
 import { LogOutIcon, MoonIcon, NotepadTextIcon, SunIcon, UserIcon } from "lucide-react";
 import { toast } from "sonner";
-import { useSWRConfig } from "swr";
 import Invitations from "./invitations";
 import { useAuth } from "./providers/auth-provider";
 import { useTheme } from "./providers/theme-provider";
@@ -19,14 +19,14 @@ import {
 
 export default function Navbar({ isDashboard }: { isDashboard?: boolean }) {
   const { theme, setTheme } = useTheme();
-  const { mutate } = useSWRConfig();
   const { auth, setAuth, logout } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   async function handleLogout() {
     try {
       await logout();
-      mutate(() => true, undefined, { revalidate: false });
+      queryClient.clear();
       navigate("/auth/login");
     } catch (error) {
       if (error instanceof AxiosError && error.response?.status === 401) {
